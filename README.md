@@ -3,81 +3,55 @@
 <div align="center">
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg?style=for-the-badge&logo=python&logoColor=white)
-![Gemini](https://img.shields.io/badge/AI-Gemini%202.5-orange.svg?style=for-the-badge&logo=google&logoColor=white)
-![Telegram](https://img.shields.io/badge/Bot-Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)
 ![Zeabur](https://img.shields.io/badge/Deploy-Zeabur-purple?style=for-the-badge&logo=zeabur&logoColor=white)
 
 <h3> 🤖 全能型 · 毒舌系 · 群管机器人 </h3>
-
-<p>
-  <a href="#-核心特性-features">核心特性</a> •
-  <a href="#-部署到-zeabur-推荐">⚡ 一键部署</a> •
-  <a href="#-指令列表-commands">指令列表</a>
-</p>
 
 </div>
 
 ---
 
-> **"哼，居然还要本小姐亲自来教你部署？"**
-> 
-> 一个基于 **Google Gemini 2.5 Flash** 的全能型 Telegram 群管机器人。
-> 她拥有**傲娇毒舌**的独立人格，支持 **11 Key 负载均衡**、**多模态交互**、**语音通话**及**铁腕群管**功能。
-> 
-> **专为免费容器 (如 Zeabur) 优化，不休眠，响应快。**
+## 👶 小白必读：怎么让它跑起来？
 
-## ✨ 核心特性 (Features)
+**千万不要直接改代码里的 `main.py`！**
+这是一个开源项目，为了安全，我们不把密码写在代码里。请按照下面的步骤，把密码填在 **Zeabur 的设置**里。
 
-| 模块 | 功能描述 |
-| :--- | :--- |
-| **🧠 超强大脑** | 集成 Gemini 2.5，内置 **11 Key 轮询池**，自动处理限流，保证 24/7 在线。 |
-| **🎭 沉浸人设** | 默认“傲娇毒舌”性格，支持 `/act` 指令随时变身猫娘、女仆或任何角色。 |
-| **👑 铁腕群管** | 智能识别垃圾广告，执行“警告-禁言-踢出”三级制裁；支持 `/ti`, `/mute` 等快捷指令。 |
-| **🗣️ 全感官交互** | **听**语音条、**看**图片表情包、**说** Edge-TTS 高清语音 (支持 Rap/朗诵)。 |
-| **🛡️ 安全机制** | 私聊白名单（只服务主人），最高权限控制，防止额度被盗刷。 |
+### 第一步：一键部署
+1. 点击右上角的 **Fork** 按钮，把这个项目复制到你的 GitHub。
+2. 登录 [Zeabur](https://zeabur.com)，点击 **Create Project**。
+3. 选择 **Deploy New Service** -> **Git** -> 选中你刚才 Fork 的 `Vivian-Bot`。
+4. 点击 **Deploy**。
 
-## ⚡ 部署到 Zeabur (推荐)
+### 第二步：填入密码 (最关键！)
+部署后服务会报错（显示 Crash），这是正常的！因为你还没给它“钥匙”。
+1. 在 Zeabur 点击你的服务卡片。
+2. 点击顶部的 **Variables (变量)** 标签。
+3. 点击 **Add Variable**，把下面这 3 个填进去：
 
-本项目完美适配 **Zeabur**，支持 Docker 一键构建，**完全免费**且**无需服务器**。
+| 变量名 (Key) | 填什么 (Value) | 例子 |
+| :--- | :--- | :--- |
+| `TELEGRAM_BOT_TOKEN` | 你的机器人 Token (找 BotFather 要) | `123456:ABC-xxxx` |
+| `GEMINI_API_KEYS` | 你的 Google Key (多个用逗号隔开) | `AIza1...,AIza2...` |
+| `OWNER_ID` | 你的 Telegram ID (在那串数字) | `5016221686` |
 
-### 1. 准备工作
-* Fork 本仓库到你的 GitHub。
-* 注册/登录 [Zeabur](https://zeabur.com)。
-
-### 2. 开始部署
-1. 进入 Zeabur 控制台，点击 **Create Project**。
-2. 点击 **Deploy New Service** -> 选择 **Git**。
-3. 选中你 Fork 的 `Vivian-Bot` 仓库。
-4. 点击 **Deploy** (Zeabur 会自动识别 Dockerfile)。
-
-### 3. 注入灵魂 (环境变量)
-部署后服务会报错（因为没 Key），请点击服务卡片 -> **Variables**，添加以下变量：
-
-| 变量名 (Key) | 必填 | 填入内容 (Value) | 示例 |
-| :--- | :--- | :--- | :--- |
-| `TELEGRAM_BOT_TOKEN` | ✅ | 你的 Bot Token | `123456:ABC-xxx` |
-| `GEMINI_API_KEYS` | ✅ | Gemini Key 池 (英文逗号分隔) | `AIza1...,AIza2...` |
-| `OWNER_ID` | ✅ | 你的 Telegram ID (最高权限) | `5016221686` |
-| `GROUP_LINK` | ❌ | 群组链接 (拒绝陌生人时展示) | `https://t.me/yourgroup` |
-
-*保存变量后，Zeabur 会自动重启服务，看到绿色的 **Running** 即为成功！*
+**填完保存后，Zeabur 会自动重启，机器人就复活了！**
 
 ---
 
-## 🛠️ 本地 / Docker 部署
+## ✨ 核心功能
+* **🧠 聪明**: 11 个 Key 轮流用，不会被封号。
+* **🗣️ 会说**: 发送 `/sing` 让她唱歌，或者发语音给她。
+* **👀 会看**: 发表情包或图片，她能看懂并吐槽。
+* **👑 会管**: 支持 `/ti` (踢人), `/jy` (禁言)。
 
-如果你有自己的服务器 (VPS)，也可以直接运行：
+## 📝 指令大全
+| 指令 | 作用 |
+| :--- | :--- |
+| `/ms` | 切换 **话痨/高冷** 模式 |
+| `/act [人设]` | 变身 (例: `/act 猫娘`) |
+| `/sing [歌名]` | 让她 Rap 一首 |
+| `/ti` | 踢人 (回复某人) |
+| `/cw` | 重置记忆 |
 
-```bash
-# 1. 克隆仓库
-git clone [https://github.com/你的用户名/Vivian-Bot.git](https://github.com/你的用户名/Vivian-Bot.git)
-
-# 2. 构建镜像
-docker build -t vivian-bot .
-
-# 3. 运行容器
-docker run -d \
-  -e TELEGRAM_BOT_TOKEN="your_token" \
-  -e GEMINI_API_KEYS="key1,key2,key3" \
-  -e OWNER_ID=123456 \
-  vivian-bot
+## 📄 开源协议
+MIT License

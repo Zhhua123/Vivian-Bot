@@ -10,30 +10,38 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, Messa
 from ai_agent import GeminiAgent
 from tts_engine import text_to_speech_stream
 
-# 🛡️ 从环境变量读取配置 (开源安全版)
+# ======================================================================
+# 🟢【小白请看这里】配置读取区
+# 这里的代码会自动去读取你在 Zeabur "Variables" 里填的内容。
+# ⚠️ 警告：千万不要直接在这里把 'TOKEN' 改成你的密码！那样不安全！
+# ======================================================================
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))
 GROUP_LINK = os.getenv("GROUP_LINK", "群聊")
 
-# 检查 Token 是否存在
+# 检查一下你有没有在 Zeabur 里填 Token，没填就报错提醒你
 if not TOKEN:
-    print("❌ 错误：未设置 TELEGRAM_BOT_TOKEN 环境变量")
+    print("❌ 【启动失败】你忘记设置环境变量了！")
+    print("👉 请去 Zeabur -> Variables -> 添加 TELEGRAM_BOT_TOKEN")
     sys.exit(1)
 
+# 配置日志（让你在后台能看到它在干嘛）
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 ai_bot = None
 
-# 全局数据
+# 全局数据（存聊天记录和违规次数的地方）
 VIOLATIONS = defaultdict(int)
 GROUP_HISTORY = defaultdict(lambda: deque(maxlen=50))
 CHAT_MODES = defaultdict(bool) 
 
-# --- 辅助函数 ---
+# --- 👇 下面是功能逻辑区，小白不需要改动 👇 ---
+
+# 1. 检查是不是主人或者管理员
 async def check_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
     
-    if user_id == OWNER_ID: return True
+    if user_id == OWNER_ID: return True # 主人最大
     if update.message.chat.type == 'private': return True
 
     try:
@@ -45,28 +53,32 @@ async def check_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> boo
     await update.message.reply_text("💢 杂鱼，你没有权限命令本小姐！")
     return False
 
+# 2. 拦截陌生人私聊
 async def check_private_access(update: Update) -> bool:
     if update.message.chat.type != 'private': return True
     if update.effective_user.id == OWNER_ID: return True
-    await update.message.reply_text(f"🚫 **访问拒绝**\n去 {GROUP_LINK} 找我。", parse_mode='Markdown')
+    await update.message.reply_text(f"🚫 **访问拒绝**\n我是私人助理，只服务主人。\n请去 {GROUP_LINK} 找我。", parse_mode='Markdown')
     return False
 
+# 3. 判断要不要回消息
 def should_reply_check(update, context):
     user_input = update.message.text or ""
     chat_type = update.message.chat.type
     chat_id = update.effective_chat.id
     
-    if chat_type == 'private': return True
+    if chat_type == 'private': return True # 私聊必回
     
-    is_talkative = CHAT_MODES[chat_id]
+    is_talkative = CHAT_MODES[chat_id] # 看是不是话痨模式
     is_reply_bot = (update.message.reply_to_message and update.message.reply_to_message.from_user.id == context.bot.id)
     is_called = ("薇薇安" in user_input or "gemini" in user_input.lower())
     
     if is_talkative: return True
     return is_called or is_reply_bot
 
-# --- 指令函数 ---
+# --- 🎮 指令区 (这里定义了 /ms /act 这些命令) ---
+
 async def ms_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """切换高冷/话痨模式"""
     if not await check_admin(update, context): return
     chat_id = update.effective_chat.id
     CHAT_MODES[chat_id] = not CHAT_MODES[chat_id]
@@ -74,6 +86,7 @@ async def ms_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"📢 **模式切换**：{state}")
 
 async def act_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """变身指令"""
     if not ai_bot: return
     if not context.args:
         await update.message.reply_text("🎭 请输入人设，例如：`/act 猫娘`", parse_mode='Markdown')
@@ -83,14 +96,17 @@ async def act_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"🎭 变身成功！现在我是：**{persona}**", parse_mode='Markdown')
 
 async def cw_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """重置记忆"""
     if not ai_bot: return
     ai_bot.set_persona(update.effective_user.id, "reset")
     await update.message.reply_text("🧹 记忆已清理，焕然一新！")
 
+# --- 🛡️ 管理员指令 (踢人/禁言) ---
+
 async def ti_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await check_admin(update, context): return
     if not update.message.reply_to_message:
-        await update.message.reply_text("🙄 回复要踢的人发送 /ti")
+        await update.message.reply_text("🙄 请回复你要踢的那个人！")
         return
     target = update.message.reply_to_message.from_user
     if target.id == OWNER_ID:
@@ -137,6 +153,8 @@ async def zd_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("📌 消息已置顶！")
     except: pass
 
+# --- 🔧 功能指令 (总结/翻译/唱歌/审判) ---
+
 async def zj_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await check_private_access(update): return
     chat_id = update.effective_chat.id
@@ -182,7 +200,8 @@ async def roast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     roast = await ai_bot.generate_roast(update.effective_user.id, target_msg)
     await update.message.reply_text(roast)
 
-# --- 消息处理 ---
+# --- 💬 消息处理中心 ---
+
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await check_private_access(update): return
     
@@ -190,11 +209,13 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_name = update.effective_user.first_name
     chat_id = update.effective_chat.id
     
+    # 记录群聊历史
     if update.message.chat.type != 'private':
         GROUP_HISTORY[chat_id].append(f"{user_name}: {user_input}")
 
     if not should_reply_check(update, context): return
 
+    # 快捷指令拦截
     if user_input.startswith('/act '):
         if ai_bot: ai_bot.set_persona(update.effective_user.id, user_input.replace('/act ', ''))
         await update.message.reply_text("🎭 变身！")
@@ -210,6 +231,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response = await ai_bot.send_text(update.effective_user.id, user_input)
         await update.message.reply_text(response)
         
+        # 语音朗读 (检测关键词)
         if any(k in user_input for k in ["语音", "读", "念", "说"]):
             await context.bot.send_chat_action(chat_id=chat_id, action="record_voice")
             voice_bio = await text_to_speech_stream(response)
@@ -260,20 +282,23 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"表情包错误: {e}")
 
 async def post_init(app):
+    """防止 webhook 冲突，自动清理"""
     await app.bot.delete_webhook(drop_pending_updates=True)
 
 if __name__ == '__main__':
+    # 尝试连接 AI
     try:
         ai_bot = GeminiAgent()
-        print(f"✅ 薇薇安 Pro Max (开源版) 已启动")
+        print(f"✅ 薇薇安 (开源版) 启动成功")
     except Exception as e:
-        print(f"❌ 启动失败: {e}")
+        print(f"❌ AI 初始化失败: {e}")
+        print("💡 提示：请检查 Zeabur 里的 GEMINI_API_KEYS 变量是否填对。")
 
     app = ApplicationBuilder().token(TOKEN).post_init(post_init).build()
     
+    # 注册所有指令
     app.add_handler(CommandHandler('start', lambda u,c: u.message.reply_text("薇薇安驾到！")))
     
-    # 注册指令
     app.add_handler(CommandHandler('ms', ms_command))
     app.add_handler(CommandHandler('act', act_command))
     app.add_handler(CommandHandler('cw', cw_command))
@@ -289,7 +314,8 @@ if __name__ == '__main__':
     app.add_handler(CommandHandler('sing', sing_command))
     app.add_handler(CommandHandler('roast', roast_command))
     
-    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, lambda u,c: u.message.reply_text("哟，新人？报上名来！")))
+    # 注册消息处理
+    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, lambda u,c: u.message.reply_text("哟，新人？报上三围！")))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_text))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))

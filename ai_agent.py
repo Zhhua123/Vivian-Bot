@@ -7,14 +7,16 @@ from google.genai import types
 
 class GeminiAgent:
     def __init__(self):
-        # 🛡️ 从环境变量读取 Keys
+        # 🟢【小白请注意】这里不再直接写 Key，而是去读 Zeabur 里的变量
         keys_str = os.getenv("GEMINI_API_KEYS", "")
+        # 兼容单 Key 写法
         if not keys_str: keys_str = os.getenv("GEMINI_API_KEY", "")
             
+        # 把逗号分隔的字符串变成列表
         self.api_keys = [k.strip() for k in keys_str.split(',') if k.strip()]
         
         if not self.api_keys:
-            print("❌ 警告：未检测到 GEMINI_API_KEYS")
+            print("❌ 警告：未检测到 GEMINI_API_KEYS 变量！AI 无法工作。")
             self.valid_keys = []
         else:
             self.valid_keys = self.api_keys
@@ -23,6 +25,7 @@ class GeminiAgent:
         self.client = None
         self.model_name = "gemini-2.5-flash"
         
+        # 🎭 人设
         self.persona_name = "薇薇安 (Vivian)"
         self.system_instruction = f"""
         你叫{self.persona_name}，是全能型的Telegram群组管家。
@@ -58,6 +61,7 @@ class GeminiAgent:
                     system_instruction=self.system_instruction,
                     temperature=1.2,
                     max_output_tokens=1500,
+                    # 🔥 关闭安全审查，防止看图报错
                     safety_settings=[
                         types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
                         types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
@@ -69,7 +73,7 @@ class GeminiAgent:
         return self.user_chats[user_id]
 
     async def _execute_with_retry(self, user_id, func_type, content):
-        if not self.valid_keys: return "❌ 未配置 API Key"
+        if not self.valid_keys: return "❌ 未配置 API Key，请去 Zeabur 填写。"
         max_retries = len(self.valid_keys)
         now_time = datetime.datetime.now().strftime("%H:%M")
         
@@ -91,6 +95,7 @@ class GeminiAgent:
                     prompt = content[1] or "评价这张图，如果它是表情包，请解读含义。"
                     response = chat.send_message([types.Part.from_bytes(data=content[0], mime_type="image/jpeg"), prompt])
                 
+                if not response.text: return "🚫 无法评价此内容。"
                 return response.text
             except Exception as e:
                 error_str = str(e)
@@ -99,7 +104,7 @@ class GeminiAgent:
                     self._rotate_key()
                     continue
                 return f"💢 错误: {error_str}"
-        return "😴 系统过载。"
+        return "😴 系统过载，所有 Key 都休息了。"
 
     async def send_text(self, user_id, text): return await self._execute_with_retry(user_id, 'text', text)
     async def generate_song(self, user_id, topic): return await self._execute_with_retry(user_id, 'sing', topic)
@@ -109,7 +114,6 @@ class GeminiAgent:
     
     async def summarize(self, text):
         prompt = f"请总结以下群聊内容，提取重点和八卦，用幽默的风格写成日报：\n{text}"
-        # 临时调用一次
         try:
             return self.client.chats.create(model=self.model_name).send_message(prompt).text
         except: return "无法总结"
